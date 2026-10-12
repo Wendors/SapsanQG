@@ -7,8 +7,8 @@ import QGroundControl.Controls
 Item {
     id:         _root
     width:      _pipSize
-    height:     _slotHeight * Math.max(1, _pipItems.length)
-    visible:    show && _pipItems.length > 0
+    height:     _slotHeight * _pipItems.length + _rowHeight
+    visible:    show && (_pipItems.length > 0 || _collapsedItems.length > 0)
 
     property var    item1:                  null    // Required
     property var    item2:                  null    // Optional, may come and go
@@ -17,17 +17,19 @@ Item {
     property string item3IsFullSettingsKey: "MainFlyWindowIsVideo2"    // Settings key to save whether item3 was saved in full mode
     property bool   show:                   true
 
-    // Area covering the parent, in PipView coordinates: just the restore button while collapsed
-    readonly property rect occupiedRect: _isExpanded ? Qt.rect(0, 0, width, height) : Qt.rect(showPip.x, showPip.y, showPip.width, showPip.height)
+    // Area actually covered in PipView coordinates: the expanded slots plus the restore buttons, or just the restore buttons
+    readonly property rect occupiedRect: _pipItems.length > 0 ? Qt.rect(0, 0, width, height) : Qt.rect(0, height - _rowHeight, collapsedRow.width, _rowHeight)
 
-    readonly property string _pipExpandedSettingsKey: "IsPIPVisible"
+    readonly property string _pipCollapsedSettingsKeyPrefix: "PipCollapsed"
 
     property var    _fullItem
-    property var    _pipItems:          _computeItems(true)     // Items currently shown in a pip slot, slot 0 is the bottom one
+    property var    _collapsed:         [false, false, false]   // Per item (item1..item3) collapsed state
+    property var    _pipItems:          _computeItems(true)     // Expanded items shown in a pip slot, slot 0 is the bottom one
+    property var    _collapsedItems:    _computeCollapsedItems()
     property var    _windowItem:        _computeItems(false)[0] // Item currently shown in the pop-out window
     property alias  _windowContentItem: window.contentItem
     property alias  _pipContentItem:    pipContent0
-    property bool   _isExpanded:        true
+    property real   _rowHeight:         _collapsedItems.length > 0 ? ScreenTools.defaultFontPixelHeight * 2 : 0
     property bool   _hovered:           false
     property real   _pipSize:           parent.width * 0.2
     property real   _slotHeight:        _pipSize * (9/16)
@@ -64,7 +66,18 @@ Item {
         var wantedState = forPip ? "pip" : "window"
         for (var i = 0; i < 3; i++) {
             var item = _itemAt(i)
-            if (item && item.pipState.state === wantedState) {
+            if (item && item.pipState.state === wantedState && !(forPip && _collapsed[i])) {
+                result.push(item)
+            }
+        }
+        return result
+    }
+
+    function _computeCollapsedItems() {
+        var result = []
+        for (var i = 0; i < 3; i++) {
+            var item = _itemAt(i)
+            if (item && item.pipState.state === "pip" && _collapsed[i]) {
                 result.push(item)
             }
         }
@@ -108,8 +121,36 @@ Item {
                 fullItem = item2
             }
         }
+        var collapsed = []
+        for (var j = 0; j < 3; j++) {
+            collapsed.push(QGroundControl.loadBoolGlobalSetting(_pipCollapsedSettingsKeyPrefix + j, false))
+        }
+        // The big window can't be collapsed
+        collapsed[_itemIndexOf(fullItem)] = false
+        _collapsed = collapsed
         _setFullItem(fullItem)
-        _setPipIsExpanded(QGroundControl.loadBoolGlobalSetting(_pipExpandedSettingsKey, true))
+    }
+
+    function _itemIndexOf(item) {
+        for (var i = 0; i < 3; i++) {
+            if (_itemAt(i) === item) {
+                return i
+            }
+        }
+        return -1
+    }
+
+    function _setCollapsed(index, collapsed) {
+        if (index < 0 || index > 2 || _collapsed[index] === collapsed) {
+            return
+        }
+        if (collapsed && _itemAt(index) === _fullItem) {
+            return
+        }
+        var updated = _collapsed.slice()
+        updated[index] = collapsed
+        _collapsed = updated
+        QGroundControl.saveBoolGlobalSetting(_pipCollapsedSettingsKeyPrefix + index, collapsed)
     }
 
     function _setFullItem(fullItem) {
@@ -140,11 +181,6 @@ Item {
         QGroundControl.saveBoolGlobalSetting(item3IsFullSettingsKey, pipItem === item3)
     }
 
-    function _setPipIsExpanded(isExpanded) {
-        QGroundControl.saveBoolGlobalSetting(_pipExpandedSettingsKey, isExpanded)
-        _isExpanded = isExpanded
-    }
-
     Window {
         id:         window
         visible:    false
@@ -161,8 +197,8 @@ Item {
         id:         pipContent0
         width:      _root.width
         height:     _slotHeight
-        y:          _root.height - (_slotIndexOf(item1) + 1) * _slotHeight
-        visible:    _isExpanded && _slotIndexOf(item1) >= 0
+        y:          _root.height - _rowHeight - (_slotIndexOf(item1) + 1) * _slotHeight
+        visible:    _slotIndexOf(item1) >= 0
         clip:       true
     }
 
@@ -170,8 +206,8 @@ Item {
         id:         pipContent1
         width:      _root.width
         height:     _slotHeight
-        y:          _root.height - (_slotIndexOf(item2) + 1) * _slotHeight
-        visible:    _isExpanded && _slotIndexOf(item2) >= 0
+        y:          _root.height - _rowHeight - (_slotIndexOf(item2) + 1) * _slotHeight
+        visible:    _slotIndexOf(item2) >= 0
         clip:       true
     }
 
@@ -179,8 +215,8 @@ Item {
         id:         pipContent2
         width:      _root.width
         height:     _slotHeight
-        y:          _root.height - (_slotIndexOf(item3) + 1) * _slotHeight
-        visible:    _isExpanded && _slotIndexOf(item3) >= 0
+        y:          _root.height - _rowHeight - (_slotIndexOf(item3) + 1) * _slotHeight
+        visible:    _slotIndexOf(item3) >= 0
         clip:       true
     }
 
@@ -192,8 +228,8 @@ Item {
             id:         slot
             width:      _root.width
             height:     _slotHeight
-            y:          _root.height - (_slotIndex + 1) * _slotHeight
-            visible:    _isExpanded && _slotIndex >= 0
+            y:          _root.height - _rowHeight - (_slotIndex + 1) * _slotHeight
+            visible:    _slotIndex >= 0
 
             property var   _slotItem:   _root._itemAt(index)
             property int   _slotIndex:  _root._slotIndexOf(_slotItem)
@@ -228,6 +264,24 @@ Item {
                             slot._slotItem.pipState.state = slot._slotItem.pipState.windowState
                         }
                     }
+                }
+            }
+
+            // Collapse this slot
+            Image {
+                source:         "/qmlimages/pipHide.svg"
+                mipmap:         true
+                fillMode:       Image.PreserveAspectFit
+                anchors.left:   parent.left
+                anchors.bottom: parent.bottom
+                visible:        ScreenTools.isMobile || pipMouseArea.containsMouse
+                height:         ScreenTools.defaultFontPixelHeight * 2.5
+                width:          ScreenTools.defaultFontPixelHeight * 2.5
+                sourceSize.height:  height
+
+                MouseArea {
+                    anchors.fill:   parent
+                    onClicked:      _root._setCollapsed(index, true)
                 }
             }
         }
@@ -272,7 +326,7 @@ Item {
         mipmap:         true
         anchors.right:  parent.right
         anchors.top:    parent.top
-        visible:        _isExpanded && (ScreenTools.isMobile || _hovered)
+        visible:        _pipItems.length > 0 && (ScreenTools.isMobile || _hovered)
         height:         ScreenTools.defaultFontPixelHeight * 2.5
         width:          ScreenTools.defaultFontPixelHeight * 2.5
         sourceSize.height:  height
@@ -296,45 +350,52 @@ Item {
         }
     }
 
-    Image {
-        id:             hidePIP
-        source:         "/qmlimages/pipHide.svg"
-        mipmap:         true
-        fillMode:       Image.PreserveAspectFit
+    // One restore button per collapsed item
+    Row {
+        id:             collapsedRow
         anchors.left:   parent.left
         anchors.bottom: parent.bottom
-        visible:        _isExpanded && (ScreenTools.isMobile || _hovered)
-        height:         ScreenTools.defaultFontPixelHeight * 2.5
-        width:          ScreenTools.defaultFontPixelHeight * 2.5
-        sourceSize.height:  height
-        MouseArea {
-            anchors.fill:   parent
-            onClicked:      _root._setPipIsExpanded(false)
-        }
-    }
+        spacing:        ScreenTools.defaultFontPixelWidth / 2
 
-    Rectangle {
-        id:                     showPip
-        anchors.left :          parent.left
-        anchors.bottom:         parent.bottom
-        height:                 ScreenTools.defaultFontPixelHeight * 2
-        width:                  ScreenTools.defaultFontPixelHeight * 2
-        radius:                 ScreenTools.defaultFontPixelHeight / 3
-        visible:                !_isExpanded
-        color:                  (_fullItem && !_fullItem.pipState.isDark) ? Qt.rgba(0,0,0,0.5) : Qt.rgba(0,0,0,0.75)
-        Image {
-            width:              parent.width  * 0.75
-            height:             parent.height * 0.75
-            sourceSize.height:  height
-            source:             "/res/buttonRight.svg"
-            mipmap:             true
-            fillMode:           Image.PreserveAspectFit
-            anchors.verticalCenter:     parent.verticalCenter
-            anchors.horizontalCenter:   parent.horizontalCenter
-        }
-        MouseArea {
-            anchors.fill:   parent
-            onClicked:      _root._setPipIsExpanded(true)
+        Repeater {
+            model: 3
+
+            delegate: Rectangle {
+                id:         restoreButton
+                height:     ScreenTools.defaultFontPixelHeight * 2
+                width:      restoreRow.width + ScreenTools.defaultFontPixelWidth
+                radius:     ScreenTools.defaultFontPixelHeight / 3
+                visible:    _root._collapsedItems.indexOf(_root._itemAt(index)) >= 0
+                color:      (_root._fullItem && !_root._fullItem.pipState.isDark) ? Qt.rgba(0,0,0,0.5) : Qt.rgba(0,0,0,0.75)
+
+                Row {
+                    id:                     restoreRow
+                    anchors.centerIn:       parent
+                    spacing:                ScreenTools.defaultFontPixelWidth / 4
+
+                    Image {
+                        height:             restoreButton.height * 0.6
+                        width:              height
+                        sourceSize.height:  height
+                        source:             "/res/buttonRight.svg"
+                        mipmap:             true
+                        fillMode:           Image.PreserveAspectFit
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    QGCLabel {
+                        text:                   index === 0 ? qsTr("Map") : (index === 1 ? qsTr("Video 1") : qsTr("Video 2"))
+                        color:                  "white"
+                        font.pointSize:         ScreenTools.smallFontPointSize
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill:   parent
+                    onClicked:      _root._setCollapsed(index, false)
+                }
+            }
         }
     }
 }
