@@ -12,6 +12,7 @@ Item {
 
     property var  pipView           // PipView control
     property bool isDark:   true    // true: Use dark overlay visuals
+    property Item pipContentItem:   pipView ? pipView._pipContentItem : null    // Container used while in pip state, PipView assigns one per item
 
     signal windowAboutToOpen    // Catch this signal to do something special prior to the item transition to windowed mode
     signal windowAboutToClose   // Catch this signal to do special processing prior to the item transition back to pip mode
@@ -24,15 +25,15 @@ Item {
 
             AnchorChanges {
                 target:         _viewControl
-                anchors.top:    pipView._pipContentItem.top
-                anchors.bottom: pipView._pipContentItem.bottom
-                anchors.left:   pipView._pipContentItem.left
-                anchors.right:  pipView._pipContentItem.right
+                anchors.top:    control.pipContentItem.top
+                anchors.bottom: control.pipContentItem.bottom
+                anchors.left:   control.pipContentItem.left
+                anchors.right:  control.pipContentItem.right
             }
 
             ParentChange {
                 target: _viewControl
-                parent: pipView._pipContentItem
+                parent: control.pipContentItem
             }
         },
         State {

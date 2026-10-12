@@ -32,6 +32,10 @@ class VideoManager : public QObject
     Q_PROPERTY(bool     fullScreen              READ fullScreen             WRITE setfullScreen NOTIFY fullScreenChanged)
     Q_PROPERTY(bool     hasThermal              READ hasThermal                                 NOTIFY decodingChanged)
     Q_PROPERTY(bool     hasVideo                READ hasVideo                                   NOTIFY hasVideoChanged)
+    Q_PROPERTY(bool     hasVideo2               READ hasVideo2                                  NOTIFY hasVideo2Changed)
+    Q_PROPERTY(bool     decoding2               READ decoding2                                  NOTIFY decoding2Changed)
+    Q_PROPERTY(bool     streaming2              READ streaming2                                 NOTIFY streaming2Changed)
+    Q_PROPERTY(double   aspectRatio2            READ aspectRatio2                               NOTIFY aspectRatio2Changed)
     Q_PROPERTY(bool     isStreamSource          READ isStreamSource                             NOTIFY isStreamSourceChanged)
     Q_PROPERTY(bool     isUvc                   READ isUvc                                      NOTIFY isUvcChanged)
     Q_PROPERTY(bool     recording               READ recording                                  NOTIFY recordingChanged)
@@ -67,6 +71,10 @@ public:
     bool fullScreen() const { return _fullScreen; }
     bool hasThermal() const;
     bool hasVideo() const;
+    bool hasVideo2() const;
+    bool decoding2() const { return _decoding2; }
+    bool streaming2() const { return _streaming2; }
+    double aspectRatio2() const;
     bool isStreamSource() const;
     bool isUvc() const;
     bool recording() const { return _recording; }
@@ -86,6 +94,10 @@ signals:
     void decodingChanged();
     void fullScreenChanged();
     void hasVideoChanged();
+    void hasVideo2Changed();
+    void decoding2Changed();
+    void streaming2Changed();
+    void aspectRatio2Changed();
     void imageFileChanged(const QString &filename);
     void isAutoStreamChanged();
     void isStreamSourceChanged();
@@ -118,6 +130,7 @@ private:
     bool _updateAutoStream(VideoReceiver *receiver);
     bool _updateUVC(VideoReceiver *receiver);
     bool _updateSettings(VideoReceiver *receiver);
+    QString _uriForSource(const QString &source, const QString &udpUrl, const QString &rtspUrl, const QString &tcpUrl, bool *supported = nullptr) const;
     bool _updateVideoUri(VideoReceiver *receiver, const QString &uri);
     void _restartAllVideos();
     void _restartVideo(VideoReceiver *receiver);
@@ -142,6 +155,9 @@ private:
     QAtomicInteger<bool> _decoding = false;
     QAtomicInteger<bool> _recording = false;
     QAtomicInteger<bool> _streaming = false;
+    QAtomicInteger<bool> _decoding2 = false;
+    QAtomicInteger<bool> _streaming2 = false;
+    QSize _videoSize2;
     QSize _videoSize;
     QString _imageFile;
     QString _uvcVideoSourceID;

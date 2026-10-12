@@ -17,6 +17,10 @@ public:
     DEFINE_SETTINGFACT(udpUrl)
     DEFINE_SETTINGFACT(tcpUrl)
     DEFINE_SETTINGFACT(rtspUrl)
+    DEFINE_SETTINGFACT(video2Source)
+    DEFINE_SETTINGFACT(video2UdpUrl)
+    DEFINE_SETTINGFACT(video2TcpUrl)
+    DEFINE_SETTINGFACT(video2RtspUrl)
     DEFINE_SETTINGFACT(aspectRatio)
     DEFINE_SETTINGFACT(videoFit)
     DEFINE_SETTINGFACT(gridLines)
@@ -43,8 +47,11 @@ public:
     Q_PROPERTY(QString  mpegtsVideoSource       READ mpegtsVideoSource      CONSTANT)
     Q_PROPERTY(QString  disabledVideoSource     READ disabledVideoSource    CONSTANT)
 
+    Q_PROPERTY(bool     video2StreamConfigured  READ video2StreamConfigured NOTIFY video2StreamConfiguredChanged)
+
     bool     streamConfigured       ();
-    QString  rtspVideoSource        () { return videoSourceRTSP; }
+    bool     video2StreamConfigured ();
+    QString  rtspVideoSource         () { return videoSourceRTSP; }
     QString  udp264VideoSource      () { return videoSourceUDPH264; }
     QString  udp265VideoSource      () { return videoSourceUDPH265; }
     QString  tcpVideoSource         () { return videoSourceTCP; }
@@ -71,11 +78,14 @@ public:
 
 signals:
     void streamConfiguredChanged    (bool configured);
+    void video2StreamConfiguredChanged(bool configured);
 
 private slots:
     void _configChanged             (QVariant value);
+    void _video2ConfigChanged       (QVariant value);
 
 private:
+    bool _isSourceConfigured        (const QString& source, const QString& udpUrl, const QString& rtspUrl, const QString& tcpUrl, bool allowUvc);
     void _setDefaults               ();
     void _setForceVideoDecodeList();
 

@@ -24,6 +24,7 @@ public:
     {}
 
     bool isThermal() const { return (_name == QStringLiteral("thermalVideo")); }
+    bool isSecondary() const { return (_name == QStringLiteral("video2Content")); }
 
     VideoSinkHandle sink() const { return _sink; }
     QQuickItem *widget() { return _widget; }

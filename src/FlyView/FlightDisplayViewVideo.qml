@@ -11,10 +11,11 @@ Item {
     clip:   true
 
     property bool useSmallFont: true
+    property bool secondary:    false   // true: Show the independent second video stream
 
     property double _ar:                (cameraLoader.visible && cameraLoader.status === Loader.Ready)
                                             ? cameraLoader.item.implicitWidth / cameraLoader.item.implicitHeight
-                                            : QGroundControl.videoManager.aspectRatio
+                                            : (secondary ? QGroundControl.videoManager.aspectRatio2 : QGroundControl.videoManager.aspectRatio)
     property bool   _showGrid:          QGroundControl.settingsManager.videoSettings.gridLines.rawValue
     property var    _dynamicCameras:    globals.activeVehicle ? globals.activeVehicle.cameraManager : null
     property bool   _connected:         globals.activeVehicle ? !globals.activeVehicle.communicationLost : false
@@ -23,8 +24,8 @@ Item {
     property var    _camera:            _isCamera ? _dynamicCameras.cameras.get(_curCameraIndex) : null
     property bool   _hasZoom:           _camera && _camera.hasZoom
     property int    _fitMode:           QGroundControl.settingsManager.videoSettings.videoFit.rawValue
-    property bool   _showStreamLoader:  QGroundControl.videoManager.decoding
-    property bool   _showUvcLoader:     QGroundControl.videoManager.isUvc
+    property bool   _showStreamLoader:  secondary ? QGroundControl.videoManager.decoding2 : QGroundControl.videoManager.decoding
+    property bool   _showUvcLoader:     !secondary && QGroundControl.videoManager.isUvc
 
     property bool   _isMode_FIT_WIDTH:  _fitMode === 0
     property bool   _isMode_FIT_HEIGHT: _fitMode === 1
@@ -112,6 +113,8 @@ Item {
         Component {
             id: videoOutputComponent
             FlightDisplayViewVideoOutput {
+                objectName:     root.secondary ? "video2Content" : "videoContent"
+                captureImages:  !root.secondary
             }
         }
         //-- UVC Video (USB Camera or Video Device)
@@ -167,7 +170,7 @@ Item {
             width:              height * QGroundControl.videoManager.thermalAspectRatio
             height:             _camera ? (_camera.thermalMode === MavlinkCameraControlInterface.THERMAL_FULL ? parent.height : (_camera.thermalMode === MavlinkCameraControlInterface.THERMAL_PIP ? ScreenTools.defaultFontPixelHeight * 12 : parent.height * _thermalHeightFactor)) : 0
             anchors.centerIn:   parent
-            visible:            QGroundControl.videoManager.hasThermal && _camera && _camera.thermalMode !== MavlinkCameraControlInterface.THERMAL_OFF
+            visible:            !secondary && QGroundControl.videoManager.hasThermal && _camera && _camera.thermalMode !== MavlinkCameraControlInterface.THERMAL_OFF
             function pipOrNot() {
                 if(_camera) {
                     if(_camera.thermalMode === MavlinkCameraControlInterface.THERMAL_PIP) {

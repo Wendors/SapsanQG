@@ -6,6 +6,8 @@ import QGroundControl
 VideoOutput {
     objectName: "videoContent"
 
+    property bool captureImages: true
+
     // Do NOT set `orientation` here — VideoOutput composes orientation on top of the
     // QVideoFrame's own rotation()/mirrored() metadata that qgcqvideosink forwards from
     // GstVideoOrientationMeta. Setting it would double-rotate any stream with orientation tags.
@@ -17,7 +19,7 @@ VideoOutput {
               : VideoOutput.PreserveAspectFit
 
     Connections {
-        target: QGroundControl.videoManager
+        target: captureImages ? QGroundControl.videoManager : null
         function onImageFileChanged(filename) {
             grabToImage(function(result) {
                 if (!result.saveToFile(filename)) {

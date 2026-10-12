@@ -6,7 +6,9 @@
         "autoStreamConfig": "QGroundControl.videoManager.autoStreamConfigured",
         "sourceDisabled": "videoSource === QGroundControl.settingsManager.videoSettings.disabledVideoSource",
         "isStreamSource": "QGroundControl.videoManager.isStreamSource",
-        "rtpLatencyVisible": "!QGroundControl.settingsManager.videoSettings.lowLatencyMode.rawValue"
+        "rtpLatencyVisible": "!QGroundControl.settingsManager.videoSettings.lowLatencyMode.rawValue",
+        "video2Source": "QGroundControl.settingsManager.videoSettings.video2Source.rawValue",
+        "video2Disabled": "video2Source === QGroundControl.settingsManager.videoSettings.disabledVideoSource"
     },
     "groups": [
         {
@@ -37,6 +39,35 @@
                 {
                     "setting": "videoSettings.udpUrl",
                     "showWhen": "videoSource === QGroundControl.settingsManager.videoSettings.udp264VideoSource || videoSource === QGroundControl.settingsManager.videoSettings.udp265VideoSource || videoSource === QGroundControl.settingsManager.videoSettings.mpegtsVideoSource"
+                }
+            ]
+        },
+        {
+            "heading": "Second Video Stream",
+            "keywords": ["second video", "video 2", "stream 2", "second stream", "pip"],
+            "controls": [
+                {
+                    "setting": "videoSettings.video2Source",
+                    "control": "combobox"
+                }
+            ]
+        },
+        {
+            "heading": "Second Video Connection",
+            "keywords": ["second video", "video 2", "rtsp", "tcp", "udp", "mpegts", "stream url"],
+            "showWhen": "!video2Disabled",
+            "controls": [
+                {
+                    "setting": "videoSettings.video2RtspUrl",
+                    "showWhen": "video2Source === QGroundControl.settingsManager.videoSettings.rtspVideoSource"
+                },
+                {
+                    "setting": "videoSettings.video2TcpUrl",
+                    "showWhen": "video2Source === QGroundControl.settingsManager.videoSettings.tcpVideoSource"
+                },
+                {
+                    "setting": "videoSettings.video2UdpUrl",
+                    "showWhen": "video2Source === QGroundControl.settingsManager.videoSettings.udp264VideoSource || video2Source === QGroundControl.settingsManager.videoSettings.udp265VideoSource || video2Source === QGroundControl.settingsManager.videoSettings.mpegtsVideoSource"
                 }
             ]
         },

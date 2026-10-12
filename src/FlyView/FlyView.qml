@@ -111,6 +111,11 @@ Item {
             pipView:    _pipView
         }
 
+        FlyViewVideo2 {
+            id:         videoControl2
+            pipView:    _pipView
+        }
+
         PipView {
             id:                     _pipView
             objectName:             "flyViewPipView"
@@ -120,9 +125,8 @@ Item {
             item1IsFullSettingsKey: "MainFlyWindowIsMap"
             item1:                  _mapControl
             item2:                  QGroundControl.videoManager.hasVideo ? videoControl : null
-            show:                   QGroundControl.videoManager.hasVideo && !QGroundControl.videoManager.fullScreen &&
-                                        (videoControl.pipState.state === videoControl.pipState.pipState ||
-                                         (_mapControl && _mapControl.pipState.state === _mapControl.pipState.pipState))
+            item3:                  QGroundControl.videoManager.hasVideo2 ? videoControl2 : null
+            show:                   (QGroundControl.videoManager.hasVideo || QGroundControl.videoManager.hasVideo2) && !QGroundControl.videoManager.fullScreen
             z:                      QGroundControl.zOrderWidgets
         }
 

@@ -39,6 +39,42 @@
             "keywords": "tcp,video url,stream url"
         },
         {
+            "name": "video2Source",
+            "shortDesc": "Source for the second, independent video stream (UDP, TCP or RTSP).",
+            "longDesc": "Source for the second video stream. It is shown in an additional window and is independent of the first video stream.",
+            "type": "string",
+            "default": "",
+            "label": "Source",
+            "keywords": "second video,video 2,source,camera,stream"
+        },
+        {
+            "name": "video2UdpUrl",
+            "shortDesc": "Network address and port for the second UDP video stream (e.g. 0.0.0.0:5601).",
+            "longDesc": "UDP url address and port to bind to for the second video stream. Example: 0.0.0.0:5601",
+            "type": "string",
+            "default": "0.0.0.0:5601",
+            "label": "UDP URL",
+            "keywords": "second video,video 2,udp,mpegts,video url,stream url"
+        },
+        {
+            "name": "video2RtspUrl",
+            "shortDesc": "Network address for the second RTSP video stream (e.g. rtsp://192.168.42.1:554/live2).",
+            "longDesc": "RTSP url address and port to bind to for the second video stream. Example: rtsp://192.168.42.1:554/live2",
+            "type": "string",
+            "default": "",
+            "label": "RTSP URL",
+            "keywords": "second video,video 2,rtsp,video url,stream url"
+        },
+        {
+            "name": "video2TcpUrl",
+            "shortDesc": "Network address and port for the second TCP video stream (e.g. 192.168.143.200:3002).",
+            "longDesc": "TCP url address and port to bind to for the second video stream. Example: 192.168.143.200:3002",
+            "type": "string",
+            "default": "",
+            "label": "TCP URL",
+            "keywords": "second video,video 2,tcp,video url,stream url"
+        },
+        {
             "name": "videoSavePath",
             "shortDesc": "Video save directory",
             "longDesc": "Directory to save videos to.",

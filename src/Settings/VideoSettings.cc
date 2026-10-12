@@ -34,6 +34,8 @@ DECLARE_SETTINGGROUP(Video, "Video")
 #else
     videoSourceList.append(videoSourceHerelinkHotspot);
 #endif
+    const QVariantList streamSourceList = videoSourceList;
+
     QStringList uvcDevices = UVCReceiver::getDeviceNameList();
     for (const QString& device : uvcDevices) {
         videoSourceList.append(device);
@@ -53,6 +55,15 @@ DECLARE_SETTINGGROUP(Video, "Video")
     }
 
     _nameToMetaDataMap[videoSourceName]->setEnumInfo(videoSourceCookedList, videoSourceList);
+
+    // The second stream only supports network sources (no UVC devices).
+    QVariantList video2SourceList = streamSourceList;
+    video2SourceList.insert(0, videoDisabled);
+    QStringList video2SourceCookedList;
+    for (const QVariant& videoSource: video2SourceList) {
+        video2SourceCookedList.append(VideoSettings::tr(videoSource.toString().toStdString().c_str()));
+    }
+    _nameToMetaDataMap[video2SourceName]->setEnumInfo(video2SourceCookedList, video2SourceList);
 
     _setForceVideoDecodeList();
 
@@ -83,6 +94,7 @@ void VideoSettings::_setDefaults()
     } else {
         _nameToMetaDataMap[videoSourceName]->setRawDefaultValue(videoDisabled);
     }
+    _nameToMetaDataMap[video2SourceName]->setRawDefaultValue(videoDisabled);
 }
 
 DECLARE_SETTINGSFACT(VideoSettings, aspectRatio)
@@ -230,6 +242,45 @@ DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, tcpUrl)
     return _tcpUrlFact;
 }
 
+DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, video2Source)
+{
+    if (!_video2SourceFact) {
+        _video2SourceFact = _createSettingsFact(video2SourceName);
+        if (!_video2SourceFact->enumValues().contains(_video2SourceFact->rawValue().toString())) {
+            _video2SourceFact->setRawValue(videoDisabled);
+        }
+        connect(_video2SourceFact, &Fact::valueChanged, this, &VideoSettings::_video2ConfigChanged);
+    }
+    return _video2SourceFact;
+}
+
+DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, video2UdpUrl)
+{
+    if (!_video2UdpUrlFact) {
+        _video2UdpUrlFact = _createSettingsFact(video2UdpUrlName);
+        connect(_video2UdpUrlFact, &Fact::valueChanged, this, &VideoSettings::_video2ConfigChanged);
+    }
+    return _video2UdpUrlFact;
+}
+
+DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, video2RtspUrl)
+{
+    if (!_video2RtspUrlFact) {
+        _video2RtspUrlFact = _createSettingsFact(video2RtspUrlName);
+        connect(_video2RtspUrlFact, &Fact::valueChanged, this, &VideoSettings::_video2ConfigChanged);
+    }
+    return _video2RtspUrlFact;
+}
+
+DECLARE_SETTINGSFACT_NO_FUNC(VideoSettings, video2TcpUrl)
+{
+    if (!_video2TcpUrlFact) {
+        _video2TcpUrlFact = _createSettingsFact(video2TcpUrlName);
+        connect(_video2TcpUrlFact, &Fact::valueChanged, this, &VideoSettings::_video2ConfigChanged);
+    }
+    return _video2TcpUrlFact;
+}
+
 bool VideoSettings::streamConfigured(void)
 {
     //-- First, check if it's autoconfigured
@@ -237,38 +288,51 @@ bool VideoSettings::streamConfigured(void)
         qCDebug(VideoSettingsLog) << "Stream auto configured";
         return true;
     }
+    return _isSourceConfigured(videoSource()->rawValue().toString(),
+                               udpUrl()->rawValue().toString(),
+                               rtspUrl()->rawValue().toString(),
+                               tcpUrl()->rawValue().toString(),
+                               true);
+}
+
+bool VideoSettings::video2StreamConfigured(void)
+{
+    return _isSourceConfigured(video2Source()->rawValue().toString(),
+                               video2UdpUrl()->rawValue().toString(),
+                               video2RtspUrl()->rawValue().toString(),
+                               video2TcpUrl()->rawValue().toString(),
+                               false);
+}
+
+bool VideoSettings::_isSourceConfigured(const QString& vSource, const QString& udpUrl, const QString& rtspUrl, const QString& tcpUrl, bool allowUvc)
+{
     //-- Check if it's disabled
-    QString vSource = videoSource()->rawValue().toString();
     if(vSource == videoSourceNoVideo || vSource == videoDisabled) {
         return false;
     }
     //-- If UDP, check for URL
     if(vSource == videoSourceUDPH264 || vSource == videoSourceUDPH265) {
-        const QString url = udpUrl()->rawValue().toString();
         qCDebug(VideoSettingsLog) << "Testing configuration for UDP Stream:"
-                                  << QGCNetworkHelper::redactedUrlForLogging(url);
-        return !url.isEmpty();
+                                  << QGCNetworkHelper::redactedUrlForLogging(udpUrl);
+        return !udpUrl.isEmpty();
     }
     //-- If RTSP, check for URL
     if(vSource == videoSourceRTSP) {
-        const QString url = rtspUrl()->rawValue().toString();
         qCDebug(VideoSettingsLog) << "Testing configuration for RTSP Stream:"
-                                  << QGCNetworkHelper::redactedUrlForLogging(url);
-        return !url.isEmpty();
+                                  << QGCNetworkHelper::redactedUrlForLogging(rtspUrl);
+        return !rtspUrl.isEmpty();
     }
     //-- If TCP, check for URL
     if(vSource == videoSourceTCP) {
-        const QString url = tcpUrl()->rawValue().toString();
         qCDebug(VideoSettingsLog) << "Testing configuration for TCP Stream:"
-                                  << QGCNetworkHelper::redactedUrlForLogging(url);
-        return !url.isEmpty();
+                                  << QGCNetworkHelper::redactedUrlForLogging(tcpUrl);
+        return !tcpUrl.isEmpty();
     }
     //-- If MPEG-TS, check for URL
     if(vSource == videoSourceMPEGTS) {
-        const QString url = udpUrl()->rawValue().toString();
         qCDebug(VideoSettingsLog) << "Testing configuration for MPEG-TS Stream:"
-                                  << QGCNetworkHelper::redactedUrlForLogging(url);
-        return !url.isEmpty();
+                                  << QGCNetworkHelper::redactedUrlForLogging(udpUrl);
+        return !udpUrl.isEmpty();
     }
     //-- If Herelink Air unit, good to go
     if(vSource == videoSourceHerelinkAirUnit) {
@@ -280,7 +344,7 @@ bool VideoSettings::streamConfigured(void)
         qCDebug(VideoSettingsLog) << "Stream configured for Herelink Hotspot";
         return true;
     }
-    if (UVCReceiver::enabled() && UVCReceiver::deviceExists(vSource)) {
+    if (allowUvc && UVCReceiver::enabled() && UVCReceiver::deviceExists(vSource)) {
         qCDebug(VideoSettingsLog) << "Stream configured for UVC";
         return true;
     }
@@ -290,6 +354,11 @@ bool VideoSettings::streamConfigured(void)
 void VideoSettings::_configChanged(QVariant)
 {
     emit streamConfiguredChanged(streamConfigured());
+}
+
+void VideoSettings::_video2ConfigChanged(QVariant)
+{
+    emit video2StreamConfiguredChanged(video2StreamConfigured());
 }
 
 void VideoSettings::_setForceVideoDecodeList()
